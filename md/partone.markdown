@@ -1,4 +1,4 @@
-# The Potion Book - Part I
+# Introduction to Potions
 ### Basic Matching
 Starting with the simplest program
 
@@ -231,6 +231,8 @@ Lists have a handful of special operators that work only on lists:
     difference = [1, 2, 3, 4] -- [2, 4]
     membership = 1 in [1, 2, 3, 4]
 
+Accessing the items in a list are done largely through the classic recursive list approaches, but that topic is covered later.
+
 For a list of key-value pairs there is a shorthand:
 
     kvs = [firstname: "Ryan", lastname: "Dangerous", location: "Hacker School"]
@@ -256,3 +258,91 @@ The second example shows how you can use a map for a kind of pattern-matching co
     %{ one: 1, two: 2, three: 3 }
 
 So fresh and so clean.
+
+A natural question here is why there's a difference between maps and keyword lists? Keyword lists allow the same keys to be repeated, which is not allowed in Maps. Furthermore, keyword lists are lightweight and excellent for things like parameter passing, shown in the example above. Beyond that, however, you typically want to use Maps. Maps grow more efficiently, have constant time lookup, and can also be used for pattern matching.
+
+Extracting a value from a map is done with square brackets.
+
+    states["NY"]
+    >> "New York"
+
+If the keys are atoms (again, a good practice) you can also extract the values using dot notation.
+
+    thedude = %{ name: "Lebowski", rug: "Really ties the room together" }
+    thedude.name
+    >> "Lebowski"
+
+Methinks mesees the beginnings of an object-like syntax here. If you use the normal bracket syntax missing keys will return `nil`, but if you use the dot syntax you'll get a KeyError.
+
+#### Binaries
+When you need to access binary values directly you can surround them with `<< >>`.
+
+    bin = <<1, 2>>
+
+This packs 1 and 2 into bytes.
+
+    byte_size bin
+    >> 2
+
+Each field is a single byte here, if you try to pack values larger than 255 into the byte it will wrap around. (It doesn't appear to actually overflow into other memory, so the wrapping is an incidental consequence of overflowing the allotted memory and not an intentional effort to handle that specific error.)
+
+You can specify a bit size for each item in the binary.
+
+    bin = <<3 :: size(2), 5 :: size(4), 1 :: size(2)>>
+    >> <<213>>
+    byte_size bin
+    >> 1
+
+This
+
+## Conventions
+#### Names
+combinations of upper and lower case ASCII, digits, and underscores, they can end with a `!` or `?`. Module, record, protocol, and behavior names are in `CamelCase` and everything else is `snake_case`. a variable that starts with an underscore (or maybe is just an underscore?) doesn't produce an error when it is matched and not used, so this is the convention for ignoring variables.
+
+Source files are utf-8 but the identifier character set only uses ASCII. Source indentation is Ruby-style. Two spaces per tab, but no actual tab characters in the source file.
+
+Comments use the `#` hash symbol and run to the EOL.
+
+#### Truthiness
+`true` `false` and `nil` are the three fundamental truth values. `nil` is treated as false in boolean contexts and essentially every other extant value is treated as true. There is no special inherent truthiness to values like 0 or the empty string.
+
+#### Comparison Operators
+- `===` Strict equality, so `1.0 === 1` is `false`
+- `!==` Strict inequality, the inverse of the above, so `1.0 !== 1` is `true`
+- `==` Value equality, `1.0 == 1` is `true`
+- `!=` Value inequality, the inverse of the above, `1.0 != 1` is `false`
+- `> >= < <=` Work as they do in other languages
+
+Comparison in Elixir is much less strict in the sense that different types can be directly compared. When the types are the same and an ordinal comparison is defined, that ordering is used. Otherwise comparisons follow this rule:
+
+    number < atom < reference < function < port < pid < tuple < map < list < binary
+
+#### Strict Boolean Operators
+Expect a boolean argument as their first value.
+
+- `a or b`
+- `a and b`
+- `a xor b`
+- `not a`
+
+#### Relaxed Boolean
+Will take arguments of any type and use the inherent truthiness of the values to get the result
+
+- `a || b`
+- `a && b`
+- `!a`
+
+#### Arithmetic
+
+- `+ - *` Follow normal type coercion rules
+- `/` Always returns a float
+- `div` Integer division
+- `rem` Remainder, not entirely the same as modulus because the result will have the same sign as the first argument.
+
+#### Join Operators
+- `<>` Concatenates two binaries, including strings, since strings in Erlang are binaries.
+- `++` Concatenates two lists
+- `--` The difference between two lists
+
+#### In
+- `x in coll` Tests the inclusion of x in the collection

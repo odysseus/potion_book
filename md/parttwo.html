@@ -1,0 +1,450 @@
+
+	<!DOCTYPE html><html><head>
+	<title>Md/Parttwo</title>
+	<style type="text/css"> 
+	body { font-family:'Helvetica', Arial, sans-serif; font-size:15px; 
+			color: #333; background-color:#FFF; line-height:1.5em; width:960px;
+      padding:0px}
+	h1 { font-size: 3.5em; line-height: 1em; color:#000; background-color:#FFF; 
+      text-align:center}
+  h1.chapter { background-color: #333; color: #fff; line-height:2em }
+	h2 { font-size: 2em; line-height: 1em; color:#000 }
+	h3 { font-size:1.5em; line-height: 1em; color:#000 } 
+  h4 { font-size:1em; line-height: 0em; padding-top:1em }
+	code { 	font-family: 'Monaco', monospace; font-size:12px; background:#EEE}
+	pre { color:#000; background:#EEE; padding:1em; line-height:1.35em }
+	#content { margin: 3.5em }
+	table { border-collapse: collapse; border: 1px solid #333 }
+	td { border: 1px solid #555; padding-left: 1em } 
+	th { color: #fff; background-color: #333 }
+	</style></head>
+	<body><div id="content">
+<h1>Intermediate Alchemy</h1>
+
+<h2>Anonymous Functions</h2>
+
+<h4>Defining</h4>
+
+<p>The basic form:</p>
+
+<pre><code>fn params -&gt; body end
+</code></pre>
+
+<p>Or a slightly more complicated one</p>
+
+<pre><code>fn
+  params -&gt; body
+  params -&gt; body
+end
+</code></pre>
+
+<p>As you can see you have different matches in the same function body. All of these matches must have the same arity, however.</p>
+
+<h4>Calling</h4>
+
+<p>Calling an anonymous function requires two bits of syntax.</p>
+
+<pre><code>square = fn (x) -&gt; x * x end
+square.(2)
+&gt;&gt; 4
+
+five = fn -&gt; 5 end
+five.()
+&gt;&gt; 5
+</code></pre>
+
+<p>First, the name the function is bound to followed by a dot, then parentheses containing the arguments. Unlike named functions the parens are not optional, an anonymous function with no arguments still requires an empty set of parens at the end.</p>
+
+<p>As seen above, though, you can omit the parens in the definition when a fn takes no arguments, and you can even omit them when it does.</p>
+
+<pre><code>sum = fn a, b -&gt; a + b end
+sum.(4, 2)
+&gt;&gt; 6
+</code></pre>
+
+<h4>Pattern Matching</h4>
+
+<p>It&#39;s important to reiterate that what&#39;s actually happening when you define and call a function is an extension of the pattern matching used elsewhere. When you pass in arguments it matches them to one of the defined patterns then binds the variable names from that pattern to their respective pairs in the arguments.</p>
+
+<pre><code>foil = fn
+  {1, a}, {b, c} -&gt; &quot;#{b} + #{c} + #{a}*#{b} + #{a}*#{c}&quot;
+  {a, b}, {1, c} -&gt; &quot;#{a} + #{a}*#{c} + #{b} + #{b}*#{c}&quot;
+  {a, b}, {c, d} -&gt; &quot;#{a}*#{c} + #{a}*#{d} + #{b}*#{c} + #{b}*#{d}&quot;
+end
+</code></pre>
+
+<p>Another, more practical example of pattern matching in functions</p>
+
+<pre><code>handle_open = fn
+  {:ok, file} -&gt; &quot;Read data: #{IO.read(file, :line)}&quot;
+  {_, error} -&gt; &quot;Error: #{:file.format_error(error)}&quot;
+end
+</code></pre>
+
+<p>Finally, another example/exercise from the book using the venerable FizzBuzz. Write a function that returns &quot;FizzBuzz&quot; if the first two arguments are zero, &quot;Fizz&quot; if only the first is, &quot;Buzz&quot; if only the second is, and the third argument for all other cases.</p>
+
+<pre><code>fizzbuzz = fn
+  {0, 0, _} -&gt; &quot;FizzBuzz&quot;
+  {0, _, _} -&gt; &quot;Fizz&quot;
+  {_, 0, _} -&gt; &quot;Buzz&quot;
+  {_, _, a} -&gt; a
+end
+</code></pre>
+
+<p>Now, another function that decomposes an integer into values that can be read by this first function:</p>
+
+<pre><code>fizzbuzzifier = fn
+  n -&gt; {rem(n,3), rem(n,5), n}
+end
+</code></pre>
+
+<h4>Returning Functions</h4>
+
+<p>Not surprisingly functions can return functions. Here&#39;s a few examples of that.</p>
+
+<pre><code>hifn = fn -&gt; fn -&gt; &quot;Hello&quot; end end
+</code></pre>
+
+<p>This is a little easier to read when expanded</p>
+
+<pre><code>hifn =
+ fn -&gt;
+   fn -&gt;
+     &quot;Hello&quot;
+   end
+ end
+</code></pre>
+
+<p>So the function call will return another function which, when called, will return hello. Let&#39;s test that:</p>
+
+<pre><code>hifn.().()
+&gt;&gt; &quot;Hello&quot;
+</code></pre>
+
+<h4>Closures</h4>
+
+<p>Functions remember their outer environment. Take this example:</p>
+
+<pre><code>greeter = fn name -&gt; fn -&gt; &quot;Hello, #{name}&quot; end end
+doug_greeter = greeter.(&quot;Doug&quot;)
+doug_greeter.()
+&gt;&gt; &quot;Hello, Doug&quot;
+</code></pre>
+
+<p>Take note of what&#39;s happening here. This does not return a partially evaluated function, it returns a function of zero arguments that has closed over a variable in an outer scope. When we call <code>greeter</code> we pass it the <code>name</code> variable, which only exists in the <code>greeter</code> function itself, it is not explicitly passed to the function returned by it so it should be out of scope when the returned function is called. Yet we call the returned function and the substitution takes place.</p>
+
+<h4>Passing as Arguments</h4>
+
+<p>As expected this totally works.</p>
+
+<pre><code>square = fn n -&gt; n * n end
+apply = fn fun, n -&gt; fun.(n) end
+apply.(square, 4)
+&gt;&gt; 16
+</code></pre>
+
+<h4>Shortenizing them</h4>
+
+<p>Because anonymous functions, and passing functions as arguments, and especially passing anonymous functions as arguments are such big parts of functional programming there is a special shorthand syntax for writing them.</p>
+
+<pre><code>square = &amp;(&amp;1 * &amp;1)
+</code></pre>
+
+<p><code>&amp;()</code> defines an anonymous function, within the parentheses the <code>&amp;1</code>, <code>&amp;2</code>, and so on stand for the first and second argument, respectively.</p>
+
+<p>There&#39;s an even shorter form of this when you need to convert a named function call to an anonymous function. (I don&#39;t fully understand why some of these need this and some don&#39;t, I think it has to do with variadic functions, you need to specify an arity of the function to be called.) Anyway, there&#39;s a shorter form in that situation:</p>
+
+<pre><code>l = &amp;length/1
+len = &amp;Enum.count/1
+</code></pre>
+
+<p>The form here is <code>&amp;function/{arity}</code> and this is equivalent to <code>&amp;Enum.count(&amp;1)</code>. This is a good, shorthand way to pass functions to other functions.</p>
+
+<h2>Modules and Named Functions</h2>
+
+<p>Thusfar all of our functions have been anonymous. Mysterious drifters wandering through the land of Elixir transforming data and riding off into the sunset. Time to meet their more respectable, but less hot cousins: named functions.</p>
+
+<pre><code>defmodule Times do
+  def two(n) do
+    n * 2
+  end
+end
+</code></pre>
+
+<p>Named functions are declared inside a module. Here we define a module called <code>Times</code> that multiplies numbers by a fixed constant, and single named function <code>two</code> that multiplies it by two.</p>
+
+<p>This function is assigned the internal name <code>Times.two/1</code> confirming my earlier suspicion about function dispatch needing both a name and an arity. Going off book here, but this leads me to another suspicion: Operator overloading. Check this out:</p>
+
+<pre><code>defmodule Times do
+  def two(n) do
+    n * 2
+  end
+  def two(a, b) do
+    (a + b) * 2
+  end
+end
+</code></pre>
+
+<p>This works, both functions can exist in the same namespace with the same name without being the same function, because as we saw they actually aren&#39;t as far as Elixir is concerned. That said, assigning the same name to two functions in the same namespace that don&#39;t do essentially the same thing is just a bad idea and serves only to confuse, so don&#39;t do that.</p>
+
+<p>The <code>do end</code> block is actually a macro (I think) that converts the statements to the internal form which uses a sequence of <code>do:</code> statements.</p>
+
+<pre><code>def double(n), do: n * 2
+</code></pre>
+
+<p>Or with multiline functions:</p>
+
+<pre><code>def greet(greeting, name), do: (
+  IO.puts greeting
+  IO.puts &quot;How are you doing #{name}&quot;
+)
+</code></pre>
+
+<p>Obviously the form works much better with single line functions. Though for my money it seems like the conceptually cleaner thing to do is use <code>do end</code> for everything. Anonymous functions, even single-line anonymous functions, are defined using <code>do end</code> so why clutter the conceptual namespace with another way to do this.</p>
+
+<h3>Back in Pat</h3>
+
+<p>Anyway, back to patterns. There&#39;s a bit of a distinction here between writing functions of the same name and same arity versus the same name and different arity.  As far as the computer is concerned, different arities are different functions, even if the names <em>happen</em> to be identical. With the same arity, however, multiple definitions are considered to be different clauses in the same definition. All of those patterns comprise the definition of a <em>single</em> function, in other words. Let&#39;s look at a pattern matching example with factorials</p>
+
+<pre><code>defmodule Factorial do
+  def of(0), do: 1
+  def of(n), do: n * of(n-1)
+end
+</code></pre>
+
+<p>Boom, recursive factorial, four lines.  It&#39;s very Haskellian/MLericious. One pattern defines the base case, and another pattern recursively reduces the problem to something that will, at some point, reach the base case. Always worth remembering that the clauses will be read in the order that they appear. If you define the base case, or a specific match, below a wildcard clause then it will never be reached, and in a naive system would recurse infinitely. Elixir can identify clauses that can never be reached and will give you a warning about this, though as with most safeguards it&#39;s best not to rely on them, a little reasoning goes a long way.</p>
+
+<p>Finally, all patterns of the same function should be adjacent to each other in the source file. Once again, Elixir will give you a warning if they are not. I&#39;m guessing that this warning comes up more in the situation that you accidentally define two functions with the same name and arity, thus making them patterns for one another, without realizing it and having them separate in the source file.</p>
+
+<h3>Guards! Guards!</h3>
+
+<p>Guard clauses are a conditional extension to pattern matching. In a normal pattern the first pattern to match is executed. With a guard clause the pattern is extended to require the predicate to return true. So the first matching pattern with the first true predicate will be the one to execute.</p>
+
+<pre><code>defmodule Guard do
+  def what_is(x) when is_number(x) do
+    IO.puts &quot;That&#39;s a number&quot;
+  end
+  def what_is(x) when is_list(x) do
+    IO.puts &quot;It&#39;s a list&quot;
+  end
+  def what_is(x) when is_atom(x) do
+    IO.puts &quot;Ooh look, an atom!&quot;
+  end
+end
+</code></pre>
+
+<p>While trivial in function, this is an excellent example of this. Every pattern matches based on an arity of one argument, but with the guard clause only one will actually execute because only one would be true. Or all of them would be false because I&#39;m sure there&#39;s more than three types in Elixir, but these are examples and the world is neat and clean.</p>
+
+<p>We could improve our previous factorial example by including a guard clause that checks to ensure the number is greater than zero, to prevent negative numbers from causing an infinite loop.</p>
+
+<p>There are a limited number of things that can appear in a guard clause:</p>
+
+<ul>
+<li>Comparison operators</li>
+<li>Boolean operators</li>
+<li>Arithmetic operators</li>
+<li>Join operators</li>
+<li>The <code>in</code> (membership) operator</li>
+<li>Type check functions</li>
+<li>A predefined list of built-in functions that can be found in the docs.</li>
+</ul>
+
+<p>By in large it seems that most of what you would want from a guard clause works by default. Rather than worry overmuch about what works, just be aware that some things don&#39;t and if you ever run into something that doesn&#39;t take a different approach.</p>
+
+<h3>Default Parameters</h3>
+
+<p>Can be created in the function definition using the <code>\\</code> syntax:</p>
+
+<pre><code>defmodule DefParams do
+  def func(p1, p2 \\ 2, p3 \\ 3, p4) do
+    IO.inspect [p1, p2, p3, p4]
+  end
+end
+</code></pre>
+
+<p>Pattern matching with default params looks at the number of <em>requires</em> parameters to see if you passed enough arguments to meet that. If not then it&#39;s obviously an error, but if you at least the minimum then it begins to fill in the arguments left to right, while ensuring that all non-optional params have an argument. Logically it seems like you should really just have optional params at the end, then the arguments get filled in very logically left to right, but it&#39;s not a requirement of the language to do so, so even if you don&#39;t write methods this way it will still work.</p>
+
+<p>One caveat of pattern matching is that it creates odd behavior when defining functions of different arity, because the default params version will match multiple arities. Using the example above, if you defined another function that took two arguments, it would be impossible for Elixir to know whether you wanted to call the two argument function with two arguments, or the four argument function with two arguments and the two defaults. Fortunately, Elixir analyzes this kind of thing and gives you a warning if the two functions are in danger of conflicting.</p>
+
+<p>Another problem with default params comes about when defining multiple clauses of the same function along with default values.</p>
+
+<pre><code>defmodule BadPat do
+  def fun(p1 \\ :ok, p2, p3) do
+    IO.puts &quot;All good&quot;
+  end
+  def fun(:error, p2, p3) do
+    IO.puts &quot;Halt and catch fire&quot;
+  end
+end
+</code></pre>
+
+<p>The problem here is that we have multiple clauses and a default value for the first argument. The default value in itself is a suggestion that, most of the time, we expect the first argument to return <code>:ok</code>. Note that the same thing would likely be matched by the pattern <code>(:ok, p2, p3)</code> so we&#39;re conflating two similar ideas in a somewhat confusing way. To avoid this ambiguity, default params with multiple clauses (clausi?) are instead declared with an empty function header up top containing the default values, followed by the pattern matches as usual.</p>
+
+<pre><code>defmodule BadPat do
+  def fun(p1 \\ :ok, p2, p3)
+  def fun(:ok, p2, p3) do
+    IO.puts &quot;All is well&quot;
+  end
+  def fun(:bad, p2, p3) do
+    IO.puts &quot;Panic and freak out&quot;
+  end
+end
+</code></pre>
+
+<p>This voids the ambiguity of combining default values with a specific pattern. At top we see the default params for each argument, and below we see patterns that match those default params. Precisely what we were going for in a bit of a cleaner way.</p>
+
+<p>As a final example, an exercise from the book using most everything we&#39;ve looked at thusfar. This takes a number and a range and repeatedly splits the range to guess the number. If no range is supplied it defaults to the numbers from 1 to 1,000.</p>
+
+<pre><code>defmodule Chop do
+  def midrange(range) do
+    min..max = range
+    rng = max - min
+    div(rng, 2) + min
+  end
+  def guess(actual, range \\ 1..1000) do
+    guess = midrange(range)
+    guess(actual, range, guess)
+  end
+  def guess(actual, range, guess) when (guess &gt; actual) do
+    newrange = Enum.min(range)..guess
+    newguess = midrange(newrange)
+    IO.puts &quot;Is it #{guess}?&quot;
+    guess(actual, newrange, newguess)
+  end
+  def guess(actual, range, guess) when (guess &lt; actual) do
+    newrange = guess..Enum.max(range)
+    newguess = midrange(newrange)
+    IO.puts &quot;Is it #{guess}?&quot;
+    guess(actual, newrange, newguess)
+  end
+  def guess(actual, _range, guess) when (guess == actual) do
+    IO.puts &quot;Actual: #{actual} / Guess: #{guess}&quot;
+  end
+end
+</code></pre>
+
+<h3>Private Functions</h3>
+
+<p><code>defp</code> is a macro that defines a private function that can only be called within the module that defines it.</p>
+
+<h3>Piping Hot</h3>
+
+<p>Alright, now the bit that I can honestly and a little bit ashamedly admit I have been awaiting anxiously. This thing <code>|&gt;</code></p>
+
+<p>Take a code example that curries a bunch of values to get a result. Something like this:</p>
+
+<pre><code>filing = prepare_filing(sales_tax(Orders.for_customers(DB.find_customers), 2013))
+</code></pre>
+
+<p>Hideous. No redeeming qualities. Not even a mother could love this code. For the sake of readability we could refactor this to:</p>
+
+<pre><code>people = DB.find_customers
+orders = Orders.for_customers(people)
+tax = sales_tax(orders, 2013)
+filing = prepare_filing(tax)
+</code></pre>
+
+<p>But this still isn&#39;t great, it creates a lot of intermediate variables. Wouldn&#39;t it be terrific if you could somehow just pipe the results of the previous functions to the next one the way Unix does it?</p>
+
+<pre><code>filing = DB.find_customers
+            |&gt; Orders.for_customers
+            |&gt; sales_tax(2013)
+            |&gt; prepare_filing
+</code></pre>
+
+<p>This takes the result of the expression on the left and inserts it as the first parameter value of the next function call. Basically the same as the thread first macro in Clojure, but somehow more elegant.</p>
+
+<p>Always use parentheses when using the pipe operator otherwise the parser can have trouble parsing.</p>
+
+<h2>Modules</h2>
+
+<p>We&#39;ve already seen modules encapsulating named functions but they work for encapsulating all kinds of things, including other modules. Modception.</p>
+
+<pre><code>defmodule Outer do
+  defmodule Inner do
+    def innerfn do
+      IO.puts &quot;He(Hello)llo&quot;
+    end
+  end
+  def outerfn do
+    IO.puts &quot;Hello&quot;
+  end
+end
+
+Outer.Inner.innerfn
+Outer.outerfn
+</code></pre>
+
+<p>As seen above, these can be called by using their fully qualified names. &quot;What other connections does that give us!?&quot; You ask with feverish excitement. Actually none, in fact, there are fewer connections here than you already thought, so basically negative one.</p>
+
+<p>While handy for organizing code, module nesting is actually a clever illusion. There is no relationship between &quot;nested&quot; classes other than the superficial similarity of their names. Elixir compiles all your nested modules into modules with &quot;nested&quot; names. In other words, Inner is defined at the top level with the module name <code>Outer.Inner</code>. It is a standalone module in all respects.</p>
+
+<p>Similarly, you can create &quot;nested&quot; modules directly by defining modules with names like <code>One.Two.Three</code>, without the modules <code>One</code> or <code>Two</code> even existing. Knowing that the &quot;nested&quot; modules are simply a naming convention allows you to leverage the conceptual clarity of nested names without needing a mess of nested source files. It allows you to organize code into categories using modules that may not even exist.</p>
+
+<h3>Directives</h3>
+
+<p>Elixir has three directives that make working with modules easier. All of these are executed at runtime and are lexically scoped. In other words they are evaluated at the line that they are encountered in code, and available thereafter only in that enclosing scope.</p>
+
+<h4>Import</h4>
+
+<p><code>import</code> imports the functions and macros of a module into the current scope. This is obviously handy for cutting down on typing a code clutter that comes from typing a module name over and over again.</p>
+
+<pre><code>defmodule Example do
+  def func1 do
+    List.flatten [1, [2, 3], 4]
+  end
+  def func2 do
+    import List, only: [flatten: 1]
+    flatten [5, [6, 7], 8, 9]
+  end
+end
+</code></pre>
+
+<p>In the example above <code>flatten</code> is imported only for <code>func2</code> and only <code>flatten</code> is imported. If we added a <code>func3</code> after that and attempted to use flatten it would raise an error as flatten would be out of scope by that point.</p>
+
+<p>The full syntax of the statement is:</p>
+
+<pre><code>import Module [, only:|except: ]
+</code></pre>
+
+<p>With <code>only</code> or <code>except</code> allowing you to specifically include/exclude certain functions. These are then followed by a list of <code>functionname: arity</code> pairs.</p>
+
+<p>As a general rule, don&#39;t abuse the power of <code>import</code>. Import as little as you need to for as short a period as you can. Obviously this is a judgment call but it&#39;s best to keep the namespace clean wherever possible. In situations where you need a lot of imported functions, <code>alias</code> might be a better option.</p>
+
+<h4>Alias</h4>
+
+<p>Alias simply shortens a module name into whatever you specify:</p>
+
+<pre><code>defmodule Example do
+  alias Mix.Tasks.Doctest as: Doctest
+  ...
+end
+</code></pre>
+
+<p>Alias actually has an intelligent default which aliases to the last name in a nested module when it isn&#39;t passed an argument. So we could have written <code>alias Mix.Tasks.Doctest</code> and it would have been aliased to <code>Doctest</code> anyway. Aside from that, the only apparent requirement of alias is that the aliased name begin with a capital letter, and a single capital letter seems to work. Super short names like that are idiomatic in Clojure, but they don&#39;t appear to be so in this. Based on the idiomatic code samples we&#39;ve seen thusfar I get the sense that Erlang might have a more cluttered namespace than other languages.</p>
+
+<h4>Require</h4>
+
+<p><code>require</code> is needed when you want to use the macros defined in that module. It ensures that the module is loaded before your code tries to use any of its macros. Will be discusses later when the book gets to the macro section.</p>
+
+<h3>Module Attributes</h3>
+
+<p>Modules can have metadata, called <em>attributes</em> of the module. Each attribute is preceded by an <code>@</code> sign and assigned and accessed using this same form.</p>
+
+<pre><code>defmodule Meta do
+  @author &quot;Dave Thomas&quot;
+
+  def get_author, do: @author
+
+end
+</code></pre>
+
+<p>You can re-bind the value multiple times during the module definition, and when it is called from a function you will get the value that is in effect at that point in the module. While these resemble class variables from Ruby they really aren&#39;t variables in the traditional sense. Attributes are more like constants. Constants that can be reassigned in a predictable way.</p>
+
+<h3>Naming Conventions</h3>
+
+<p>Modules in Elixir are CamelCase and the functions are called via dot notation. If we inspect the value of an Elixir module, say the <code>IO</code> module, we would see that it is an atom with a name like <code>:&quot;Elixir.IO&quot;</code>, and in fact if you added a dot to the end of that you could call functions off of it.</p>
+
+<p>Erlang, in comparison, uses uppercase names for variables and lowercase names for atoms. So the Erlang module <code>timer</code> is just called <code>timer</code> and is referred to by the atom <code>:timer</code>, so functions from Erlang are called using <code>:erlangmodule.function</code></p>
+
+</div></body></html>

@@ -1,0 +1,416 @@
+
+	<!DOCTYPE html><html><head>
+	<title>Md/Partone</title>
+	<style type="text/css"> 
+	body { font-family:'Helvetica', Arial, sans-serif; font-size:15px; 
+			color: #333; background-color:#FFF; line-height:1.5em; width:960px;
+      padding:0px}
+	h1 { font-size: 3.5em; line-height: 1em; color:#000; background-color:#FFF; 
+      text-align:center}
+  h1.chapter { background-color: #333; color: #fff; line-height:2em }
+	h2 { font-size: 2em; line-height: 1em; color:#000 }
+	h3 { font-size:1.5em; line-height: 1em; color:#000 } 
+  h4 { font-size:1em; line-height: 0em; padding-top:1em }
+	code { 	font-family: 'Monaco', monospace; font-size:12px; background:#EEE}
+	pre { color:#000; background:#EEE; padding:1em; line-height:1.35em }
+	#content { margin: 3.5em }
+	table { border-collapse: collapse; border: 1px solid #333 }
+	td { border: 1px solid #555; padding-left: 1em } 
+	th { color: #fff; background-color: #333 }
+	</style></head>
+	<body><div id="content">
+<h1>The Potion Book - Part I</h1>
+
+<h3>Basic Matching</h3>
+
+<p>Starting with the simplest program</p>
+
+<pre><code>IO.puts &quot;Hello, world&quot;
+</code></pre>
+
+<p>Now on to the second simplest program, and already we have something different:</p>
+
+<pre><code>a = 1
+&gt;&gt; 1
+</code></pre>
+
+<p>This seems the same, though. What has changed? In fact what&#39;s happening here isn&#39;t assignment (completely), it&#39;s a &quot;match&quot;. To explain what that means:</p>
+
+<pre><code>1 = a
+&gt;&gt; 1
+2 = a
+&gt;&gt; (MatchError)
+</code></pre>
+
+<p>What&#39;s actually happening during assignment is pattern matching. <code>a</code> is assigned to nothing in the first call so it matches anything, and is set equal to the rhs of the statement.</p>
+
+<p>After that, when we type <code>1 = a</code> the pattern again matches because a <em>does</em> equal 1. So again we get the return value of 1. Finally we give it <code>2 = a</code> which does <em>not</em> match and we get a <code>MatchError</code> from that.</p>
+
+<p>You might also assume that a would <em>become</em> 2 in order to make the match work, but on the rhs of an equals sign all variables are treated as their values, so what we&#39;re really saying is <code>2 = 1</code>, which is false, and gets an error because it&#39;s unexpected. However, if we put:</p>
+
+<pre><code>a = 2
+</code></pre>
+
+<p>That works. Bare atoms always match what&#39;s on the rhs of an equals.</p>
+
+<h3>Intermediate Matching</h3>
+
+<p>First let&#39;s make a list</p>
+
+<pre><code>l = [1, 2, 3, 4]
+</code></pre>
+
+<p>Beautiful, what a clean and concise list.  What we have is a one dimensional list of four single elements.  Let&#39;s match on that pattern:</p>
+
+<pre><code>[a, b, c, d] = l
+&gt;&gt; [1, 2, 3, 4]
+</code></pre>
+
+<p>The return there is simply the original list, but other stuff has gone on under the surface.</p>
+
+<pre><code>a
+&gt;&gt; 1
+b
+&gt;&gt; 2
+c
+&gt;&gt; 3
+d
+&gt;&gt; 4
+</code></pre>
+
+<p>That&#39;s cool, what else can we do with this:</p>
+
+<pre><code>[x, y, z, 4] = l
+</code></pre>
+
+<p>Matches on the first three elements and the literal <code>4 = 4</code> match for the fourth. This works as above and now <code>x</code> <code>y</code> and <code>z</code> are bound to variables. Wouldn&#39;t it be nice if we could match on some kind of wildcard pattern rather than a literal number/item in a list...</p>
+
+<h3>Matching With Wildcard Patterns</h3>
+
+<p>You totally can!</p>
+
+<pre><code>[t, v, _, _] = l
+</code></pre>
+
+<p>As an interesting aside, a variable can only be used once in a match. if you tried to do something like:</p>
+
+<pre><code>[a, a] = [1, 2]
+</code></pre>
+
+<p>You&#39;d get an error. Granted, <code>[a, a] = [1, 1]</code> <em>would</em> actually work for the reasons listed above.</p>
+
+<p>Finally, suppose you want a variable on the lhs to match based on it&#39;s current value and not as a catch-all that will be reassigned by the rhs (assuming the pattern matches), you need to preface that with a caret.</p>
+
+<pre><code># We want a to match here, not be reassigned
+a = 1
+[1, a, 3] = [1, 2, 3]
+# Matching normally fails
+a
+&gt;&gt; 2
+
+a = 1
+[1, ^a, 3] = [1, 2, 3]
+&gt;&gt; MatchError
+^a = 1
+&gt;&gt; 1
+</code></pre>
+
+<h2>Immutability</h2>
+
+<p>Per the functional focus all values in Elixir are immutable.  Dave Thomas makes the point in this book that programming is about transforming data, in that sense the functional mindset fits in nicely. When you pass data into a function you are transforming it into something new, not altering the inherent value that was passed in. Obviously many languages do alter values in place, but it doesn&#39;t change the concept.</p>
+
+<p>Like Clojure, and most, if not all, functional languages there is a gap between concept and implementation here. When primitive values are transformed they are copied outright as their new values. This makes sense, as atomic values there&#39;s really no way to do this more intelligently. With collections of data, however, things are different.</p>
+
+<p>Because a list is immutable you can make strong guarantees about constructing a structure from other structures. A list with a single item added is simply the original list plus one item, there&#39;s no need to copy every single item in the list to achieve immutability. In fact, it&#39;s immutability ensures that intelligent things like this can work in the first place.</p>
+
+<h3>Garbage Collection</h3>
+
+<p>Elixir&#39;s approach to garbage collection is unique and stems directly from the Actor model that underpins the whole language. Elixir programs are composed of hundreds/thousands/millions of lightweight processes, each with their own heap and a much more limited scope for garbage collection. Furthermore, when an operation on a short-lived process completes, the heap associated with it can be reclaimed immediately.</p>
+
+<h2>Types</h2>
+
+<ul>
+<li>Values
+
+<ul>
+<li>Integers (arbitrary size)</li>
+<li>Floating point numbers</li>
+<li>Atoms</li>
+<li>Regex</li>
+<li>Ranges</li>
+</ul></li>
+<li>System Types
+
+<ul>
+<li>PIDs and Ports</li>
+<li>References</li>
+</ul></li>
+<li>Collections
+
+<ul>
+<li>Tuples</li>
+<li>Lists</li>
+<li>Maps</li>
+<li>Binaries</li>
+</ul></li>
+<li>Functions
+
+<ul>
+<li>Are first class</li>
+</ul></li>
+</ul>
+
+<p>Internally Regex and Ranges are just structs, however they are used so frequently and have robust implementations as an inherent part of the language so it&#39;s worthwhile to treat them as types in and of themselves.</p>
+
+<h3>Value Types</h3>
+
+<h4>Integers</h4>
+
+<p>Can be written in decimal, hexidecimal, octal and binary</p>
+
+<pre><code>1234 -- base-10
+0xcafe -- base-16
+0765 -- base-8
+0b1010 -- base-2
+</code></pre>
+
+<p>Decimals can contain underscores to improve readability</p>
+
+<pre><code>1_000_000
+</code></pre>
+
+<p>Bringing the number of languages this intelligent up to 3.</p>
+
+<p>As hinted at above, Integers are arbitrary size and you never need to faff about with conversions, their internal representation will simply grow as the number does.</p>
+
+<h4>Floating Point</h4>
+
+<p>Are written using a decimal. There needs to be at least one number before and a number after the decimal for it to parse. Floating points can contain optional exponent specifiers at the end.</p>
+
+<pre><code>1.0
+0.23456
+0.314159e1
+314159.0e-5
+</code></pre>
+
+<h4>Atoms</h4>
+
+<p>Are preceded with a colon and followed by an atom word. An atom word can contain letters, digits, and underscores (no dashes), the end of an atom can contain punctuation like bangs and question marks.  You can create atoms of arbitrary characters by enclosing them in quotes, thus making the forbidden characters list bidden.</p>
+
+<pre><code>:atom
+:eve?
+:here@there
+:===
+:&lt;&gt;
+:&quot;dashing-atom&quot;
+:&quot;you can do anything... in quotes&quot;
+</code></pre>
+
+<h4>Ranges</h4>
+
+<p>Are represented as <code>start..end</code> where the beginning and end can be a value of any type. If you want built in iteration support, however, those values need to be integers.</p>
+
+<p>Ranges at first seem counter-intuitive. Unlike Unix and some other languages it doesn&#39;t seem to recognize alphabetic ordering so in that sense a range is not a range (That I&#39;m used to at least) because it won&#39;t automatically iterate over the values contained within that range. On the other hand, ranges in Elixir are capable of supporting any type, rather than being a range with inherent behavior it is rather a start point and an end point that can be used to define a range when combined with some sort of programmed in logic.</p>
+
+<h4>Regex</h4>
+
+<p>Have a literal syntax all their own and the Regexes themselves seem to conform to the Perl standard and can be combined with a whole list of options.</p>
+
+<pre><code># Literal Syntax
+~r{regexp}
+~r{regexp}opts
+</code></pre>
+
+<p>The delimiters can actually be any non-alphanumeric characters so things like this would work as well</p>
+
+<pre><code>~r|regexp|
+~r/regexp/
+~r[regexp]
+</code></pre>
+
+<p>Keep in mind that what you use as the delimiter will need to be escaped if it appears in the actual pattern, so the choice of delimiter is largely one of convenience. The pattern returned by Elixir uses the classic <code>/pattern/</code> syntax and automatically escapes <code>/</code> characters that appear in the pattern when your choice of delimiter was different.</p>
+
+<ul>
+<li><code>f</code>: The pattern must begin to match on the first line of a multiline string</li>
+<li><code>g</code>: Support named groups</li>
+<li><code>i</code>: Case insensitivity</li>
+<li><code>m</code>: Multiline string, <code>^</code> and <code>$</code> continue to match the beginning and end of lines, and <code>\A</code> and <code>\z</code> now match the beginning and end of the string.</li>
+<li><code>r</code>: Changes <code>*</code> and <code>+</code> from &#39;greedy&#39; modifiers that match as much as possible to &#39;reluctant&#39; modifiers that match as little as possible.</li>
+<li><code>s</code>: allows <code>.</code> to match newline characters</li>
+<li><code>u</code>: Enables Unicode specific patterns</li>
+</ul>
+
+<h3>System Types</h3>
+
+<p>Reflect types used by the underlying Erlang system.</p>
+
+<ul>
+<li><code>pid</code>: The id of a process</li>
+<li><code>port</code>: A reference to an external resource</li>
+<li><code>reference</code>: a globally unique reference that none other will be equal to, <code>make_ref()</code> is used to create these.</li>
+</ul>
+
+<h3>Collection Types</h3>
+
+<h4>Tuples</h4>
+
+<p>An ordered, fixed length collection of values. Granted, everything in Elixir is fixed length because the data is immutable, but tuples moreso than other functional constructs rely on fixed lengths and known positions. Pattern matches on tuples will typically be one for one, whereas pattern matches on collections or lists usually involve a parameter that grabs a variable number of items from the end to be processed homogenously at a later iteration.</p>
+
+<p>As a general rule, if you have more than four elements you probably want a map or a struct instead of a tuple. Now let&#39;s look at some examples.</p>
+
+<pre><code>{status, count, action} = {:ok, 42, &quot;next&quot;}
+status
+&gt;&gt; :ok
+count
+&gt;&gt; 42
+action
+&gt;&gt; &quot;next&quot;
+</code></pre>
+
+<p>Many actions return a tuple where the first item in the tuple is the status of the action. Let&#39;s assume we have a file called <code>test</code> in the current directory.</p>
+
+<pre><code>{status, file} = File.open(&quot;test&quot;)
+status
+&gt;&gt; :ok
+file
+&gt;&gt; #PID&lt;0.100.0&gt;
+
+{status, file} = File.open(&quot;nonexistent&quot;)
+status
+&gt;&gt; :error
+file
+&gt;&gt; :enoent
+</code></pre>
+
+<p>Here we see that <code>:ok</code> was sent along as confirmation that the action completed successfully for the file that existed, and <code>:error</code> for the file that didn&#39;t. It&#39;s common to match on <code>:ok</code> directly which makes error handling much cleaner.</p>
+
+<pre><code>{:ok, file} = File.open(&quot;test&quot;)
+{:ok, failed} = File.open(&quot;nonexistent&quot;)
+</code></pre>
+
+<p>The second one will raise a <code>MatchError</code> at the command line, but with more patterns to be matched you can easily handle a successful file read and a failed file read solely by using different patterns.</p>
+
+<h4>Lists</h4>
+
+<p>Lists are singly linked, as in most functional languages. Unlike some functional languages (clojure) Elixir does not provide an analogue to the conventional array that provides lookup in constant time. Therefore, reading the nth element in Elixir will always be a comparatively expensive action because iteration will always start at the front.</p>
+
+<p>However, from an immutable standpoint there are some big advantages to using a linked list. If we want to take the head and tail of a ll all we need to do is return the first item from the list and a pointer to the second, the immutable/linked nature of the structure makes it equivalent to copying and returning the whole remainder of the list.  Similarly if we want to concatenate two lists we simply take the pointer from the end of the first and point it at the head of the second. Different versions of the same list are slightly more complicated, but in essence they all rely on having pointers to the subset of the data that they want.</p>
+
+<p>Lists are denoted with square brackets and their internal elements are separated by commas.</p>
+
+<pre><code>l = [1, 2, 3, 4, 5]
+</code></pre>
+
+<p>Lists have a handful of special operators that work only on lists:</p>
+
+<pre><code>concatenation = [1, 2, 3] ++ [4, 5, 6]
+difference = [1, 2, 3, 4] -- [2, 4]
+membership = 1 in [1, 2, 3, 4]
+</code></pre>
+
+<p>Accessing the items in a list are done largely through the classic recursive list approaches, but that topic is covered later.</p>
+
+<p>For a list of key-value pairs there is a shorthand:</p>
+
+<pre><code>kvs = [firstname: &quot;Ryan&quot;, lastname: &quot;Dangerous&quot;, location: &quot;Hacker School&quot;]
+</code></pre>
+
+<p>Note that this is not equivalent to a map, this simply turns the list into a list of tuples containing the keys and the values.</p>
+
+<p>When a keyword list is being passed to a function, and the keyword list is the last item in the function call, then the brackets can be left off.</p>
+
+<pre><code>DB.save record, use_transaction: true, logging: &quot;HIGH&quot;
+</code></pre>
+
+<h4>Maps</h4>
+
+<p>Are collections of key/value pairs with constant time lookup.</p>
+
+<pre><code>%{ key =&gt; value, key =&gt; value }
+</code></pre>
+
+<p>That&#39;s right, bringing Ruby back. Keys can be any type and you can even have different types of keys within the same map... You know, if you&#39;re into that kind of thing. Let&#39;s look at some examples:</p>
+
+<pre><code>%{ &quot;NY&quot; =&gt; &quot;New York&quot;, &quot;CO&quot; =&gt; &quot;Colorado&quot; }
+%{ {:error, :busy} =&gt; :retry, {:error, :enoent} =&gt; :fatal }
+</code></pre>
+
+<p>The second example shows how you can use a map for a kind of pattern-matching control flow thingy. When the keys are atoms, which seems likely, you can use the Ruby style syntax for key assignment:</p>
+
+<pre><code>%{ one: 1, two: 2, three: 3 }
+</code></pre>
+
+<p>So fresh and so clean.</p>
+
+<p>A natural question here is why there&#39;s a difference between maps and keyword lists? Keyword lists allow the same keys to be repeated, which is not allowed in Maps. Furthermore, keyword lists are lightweight and excellent for things like parameter passing, shown in the example above. Beyond that, however, you typically want to use Maps. Maps grow more efficiently, have constant time lookup, and can also be used for pattern matching.</p>
+
+<p>Extracting a value from a map is done with square brackets.</p>
+
+<pre><code>states[&quot;NY&quot;]
+&gt;&gt; &quot;New York&quot;
+</code></pre>
+
+<p>If the keys are atoms (again, a good practice) you can also extract the values using dot notation.</p>
+
+<pre><code>thedude = %{ name: &quot;Lebowski&quot;, rug: &quot;Really ties the room together&quot; }
+thedude.name
+&gt;&gt; &quot;Lebowski&quot;
+</code></pre>
+
+<p>Methinks mesees the beginnings of an object-like syntax here. If you use the normal bracket syntax missing keys will return <code>nil</code>, but if you use the dot syntax you&#39;ll get a KeyError.</p>
+
+<h4>Binaries</h4>
+
+<p>When you need to access binary values directly you can surround them with <code>&lt;&lt; &gt;&gt;</code>.</p>
+
+<pre><code>bin = &lt;&lt;1, 2&gt;&gt;
+</code></pre>
+
+<p>This packs 1 and 2 into bytes.</p>
+
+<pre><code>byte_size bin
+&gt;&gt; 2
+</code></pre>
+
+<p>Each field is a single byte here, if you try to pack values larger than 255 into the byte it will wrap around. (It doesn&#39;t appear to actually overflow into other memory, so the wrapping is an incidental consequence of overflowing the allotted memory and not an intentional effort to handle that specific error.)</p>
+
+<p>You can specify a bit size for each item in the binary.</p>
+
+<pre><code>bin = &lt;&lt;3 :: size(2), 5 :: size(4), 1 :: size(2)&gt;&gt;
+&gt;&gt; &lt;&lt;213&gt;&gt;
+byte_size bin
+&gt;&gt; 1
+</code></pre>
+
+<p>This</p>
+
+<h2>Conventions</h2>
+
+<h4>Names</h4>
+
+<p>combinations of upper and lower case ASCII, digits, and underscores, they can end with a <code>!</code> or <code>?</code>. Module, record, protocol, and behavior names are in <code>CamelCase</code> and everything else is <code>snake_case</code>. a variable that starts with an underscore (or maybe is just an underscore?) doesn&#39;t produce an error when it is matched and not used, so this is the convention for ignoring variables.</p>
+
+<p>Source files are utf-8 but the identifier character set only uses ASCII. Source indentation is Ruby-style. Two spaces per tab, but no actual tab characters in the source file.</p>
+
+<p>Comments use the <code>#</code> hash symbol and run to the EOL.</p>
+
+<h4>Truthiness</h4>
+
+<p><code>true</code> <code>false</code> and <code>nil</code> are the three fundamental truth values. <code>nil</code> is treated as false in boolean contexts and essentially every other extant value is treated as true. There is no special inherent truthiness to values like 0 or the empty string.</p>
+
+<h4>Comparison Operators</h4>
+
+<ul>
+<li><code>===</code> Strict equality, so <code>1.0 === 1</code> is <code>false</code></li>
+<li><code>!==</code> Strict inequality, the inverse of the above, so <code>1.0 !== 1</code> is <code>true</code></li>
+<li><code>==</code> Value equality, <code>1.0 == 1</code> is <code>true</code></li>
+<li><code>!=</code> Value inequality, the inverse of the above, <code>1.0 != 1</code> is <code>false</code></li>
+<li><code>&gt; &gt;= &lt; &lt;=</code> Work as they do in other languages</li>
+</ul>
+
+<p>Comparison in Elixir is much less strict in the sense that different types can be directly compared. When the types are the same and an ordinal comparison is defined, that ordering is used. Otherwise comparisons follow this rule:</p>
+
+<pre><code>number &lt; atom &lt; reference &lt; function &lt; port &lt; pid &lt; tuple &lt; map &lt; list &lt; binary
+</code></pre>
+
+</div></body></html>
